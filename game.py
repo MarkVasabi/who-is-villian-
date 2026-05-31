@@ -1,72 +1,46 @@
 import pygame
+from settings import *
+from entities.player import Player
+from entities.bullet import Bullet
+from entities.enemy import Enemy
+from translations import TEXT
 import os
 import random
 import math
+import resources
+
 
 pygame.init()
 pygame.mixer.init()
 
-BASE_DIR = os.path.dirname(__file__)
-
-shoot_sound = pygame.mixer.Sound(os.path.join(BASE_DIR, "shoot.mp3"))
-
-#розмір вікна
-WIDTH, HEIGHT = 800, 600
-
-#розмір гравця
-PLAYER_SIZE = 40
-
-#розмір ворога
-ENEMY_SIZE = 40
-
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
-#створення гравця й ворогів
-player = pygame.Rect(400, 300, PLAYER_SIZE, PLAYER_SIZE)
-image_path = os.path.join(BASE_DIR, "alien.png")
-player_img = pygame.image.load(image_path).convert_alpha()
-player_img = pygame.transform.scale(player_img, (PLAYER_SIZE, PLAYER_SIZE))
-#Вороги
-enemy_img_path = os.path.join(BASE_DIR, "cosmoman.png")
-player_img_normal = pygame.image.load(os.path.join(BASE_DIR, "alien.png")).convert_alpha()
-player_img_normal = pygame.transform.scale(player_img_normal, (PLAYER_SIZE, PLAYER_SIZE))
 
-player_img_enemy = pygame.image.load(os.path.join(BASE_DIR, "cosmoman.png")).convert_alpha()
-player_img_enemy = pygame.transform.scale(player_img_enemy, (PLAYER_SIZE, PLAYER_SIZE))
-enemy_img = pygame.image.load(os.path.join(BASE_DIR, "cosmoman.png")).convert_alpha()
-enemy_img = pygame.transform.scale(enemy_img, (ENEMY_SIZE, ENEMY_SIZE))
+sprite_alien = resources.get_sprite("alien")
+sprite_cosmoman = resources.get_sprite("cosmoman")
+
 
 #фон
-bg_path = os.path.join(BASE_DIR, "bg.png")  # имя картинки
-background = pygame.image.load(bg_path).convert()
+background = resources.get_image("bg")
 
-menu_bg1 = pygame.image.load(os.path.join(BASE_DIR, "menu1.png")).convert()
+menu_bg1 = resources.get_image("menu1")
+menu_bg2 = resources.get_image("menu2")
+menu_bg3 = resources.get_image("menu3")
+menu_bg4 = resources.get_image("menu4")
+
 menu_bg1 = pygame.transform.scale(menu_bg1, (WIDTH, HEIGHT))
-
-
-menu_bg2 = pygame.image.load(os.path.join(BASE_DIR, "menu2.png")).convert()
 menu_bg2 = pygame.transform.scale(menu_bg2, (WIDTH, HEIGHT))
-
-menu_bg3 = pygame.image.load(os.path.join(BASE_DIR, "menu3.png")).convert()
 menu_bg3 = pygame.transform.scale(menu_bg3, (WIDTH, HEIGHT))
-
-menu_bg4 = pygame.image.load(os.path.join(BASE_DIR, "menu4.png")).convert()
 menu_bg4 = pygame.transform.scale(menu_bg4, (WIDTH, HEIGHT))
 
 
+shoot_sound = resources.get_sound("shoot")
+
+
 #змінні
-dash_speed = 20
-dash_time = 0
-dash_duration = 10
-dash_cooldown = 0
-dash_cooldown_max = 0
-dash_dx, dash_dy = 0, 0
-game_over = False
 score = 0
 game_state = "menu"
-enemy_img_current = player_img_enemy
-selected = 0
 menu_frame = 0
 menu_timer = 0
 current_x = 242
@@ -76,30 +50,20 @@ current_size2 = 40
 target_size1 = 40
 target_size2 = 40
 
-#вороги
-enemies = []
-enemy_size = 40
-enemy_speed = 2
+player_img = None
+enemy_img = None
 
 #рестарт
 def reset_game():
-    global score, spawn_timer
+    global score, spawn_timer, player, enemies, bullets
 
     score = 0
     spawn_timer = 0
+    player = Player(WIDTH/2, HEIGHT/2, player_img)
+    bullets = []
+    enemies = []
 
-    enemies.clear()
-    bullets.clear()
-
-    player.center = (WIDTH // 2, HEIGHT // 2)
-
-#Швидкість
-speed = 5
-
-#снаряд
-bullets = []
 shoot_cooldown = 0
-shoot_delay = 15
 
 #напрямок снаряду
 direction_x = 0
@@ -109,43 +73,15 @@ direction_y = -1
 language = "ua"
 game_mode = "endless"   # endless / story
 menu_option = 0
-TEXT = {
-    "ua": {
-        "play": "Грати",
-        "mode": "Режим",
-        "language": "Мова",
-        "exit": "Вихід",
-        "endless": "Нескінченний",
-        "story": "Сюжет",
-    },
-
-    "ru": {
-        "play": "Играть",
-        "mode": "Режим",
-        "language": "Язык",
-        "exit": "Выход",
-        "endless": "Бесконечный",
-        "story": "Сюжет",
-    },
-
-    "en": {
-        "play": "Play",
-        "mode": "Mode",
-        "language": "Language",
-        "exit": "Exit",
-        "endless": "Endless",
-        "story": "Story",
-    }
-}
 
 #частота спавну ворогів
 spawn_timer = 0
-spawn_delay = 60
 
 running = True
 while running:
-    #меню
-    if game_state == "menu":
+    keys = pygame.key.get_pressed()
+
+    if game_state == "menu": #меню
         menu_timer += 1
 
         if menu_timer >= 30:#анімація
@@ -217,11 +153,12 @@ while running:
                         running = False
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(FPS)
             
         continue
 
-    if game_state == "character_select":
+    elif game_state == "character_select":
+        selected = 0
 
         menu_timer += 1
 
@@ -263,12 +200,12 @@ while running:
         pygame.draw.rect(screen, color, (current_x, 292, 70, 70), 3)           
 
         img1 = pygame.transform.scale(
-            player_img_normal,
+            sprite_cosmoman,
             (int(current_size1), int(current_size1))
         )
 
         img2 = pygame.transform.scale(
-            player_img_enemy,
+            sprite_alien,
             (int(current_size2), int(current_size2))
         )
 
@@ -293,21 +230,21 @@ while running:
                 if event.key == pygame.K_RETURN:
 
                     if selected == 0:
-                        player_img = player_img_normal
-                        enemy_img_current = player_img_enemy
+                        player_img = pygame.transform.scale(sprite_cosmoman, (PLAYER_SIZE, PLAYER_SIZE))
+                        enemy_img = pygame.transform.scale(sprite_alien, (ENEMY_SIZE, ENEMY_SIZE))
 
                     else:
-                        player_img = player_img_enemy
-                        enemy_img_current = player_img_normal
+                        player_img = pygame.transform.scale(sprite_alien, (PLAYER_SIZE, PLAYER_SIZE))
+                        enemy_img = pygame.transform.scale(sprite_cosmoman, (ENEMY_SIZE, ENEMY_SIZE))
 
                     game_state = "playing"
+                    reset_game()
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(FPS)
         continue
 
-    #экран програшу
-    if game_state == "game_over":
+    elif game_state == "game_over": #Екран програшу
         screen.fill((0, 0, 0))
 
         font = pygame.font.Font(None, 74)
@@ -334,9 +271,6 @@ while running:
 
                     if menu_option == 0:  #грати
 
-                        player_img = player_img_normal
-                        enemy_img_current = player_img_enemy
-
                         game_state = "playing"
 
                     elif menu_option == 1:  #режим
@@ -359,151 +293,108 @@ while running:
                         running = False
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(FPS)
         continue
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    #фон гри
-    screen.blit(background, (0, 0))
-
-    #клавіші
-    keys = pygame.key.get_pressed()
-
-    #ривок
-    if dash_time > 0:
-        player.x += dash_dx * dash_speed
-        player.y += dash_dy * dash_speed
-        dash_time -= 1
-        #напрямок ривку
-        dash_dx = (keys[pygame.K_d] - keys[pygame.K_a])
-        dash_dy = (keys[pygame.K_s] - keys[pygame.K_w])
-    else:
-        #базовий васд
-        dx = (keys[pygame.K_d] - keys[pygame.K_a])
-        dy = (keys[pygame.K_s] - keys[pygame.K_w])
-
-        if dx != 0 or dy != 0:
-            direction_x = dx
-            direction_y = dy
-
-        player.x += dx * speed
-        player.y += dy * speed
-
-    if shoot_cooldown > 0:
-        shoot_cooldown -= 1
-
-    #спавн снаряду
-    if keys[pygame.K_l] and shoot_cooldown == 0:
-        offset = 25
-
-        length = math.hypot(direction_x, direction_y)
-        if length != 0:
-            dx = direction_x / length
-            dy = direction_y / length
-        else:
-            dx, dy = 0, -1
-
-        bullets.append({
-            "rect": pygame.Rect(
-                player.centerx + direction_x * offset,
-                player.centery + direction_y * offset,
-                10, 10
-            ),
-            "dx": dx,
-            "dy": dy
-        })
-
-        shoot_sound.play()
-        shoot_cooldown = shoot_delay
-           
-    for bullet in bullets[:]:
-        for enemy in enemies[:]:
-            if bullet["rect"].colliderect(enemy):
-                bullets.remove(bullet)
-                enemies.remove(enemy)
-                score += 1
-                break
-        pygame.draw.rect(screen, (255, 0, 0), bullet["rect"])
-        bullet["rect"].x += bullet["dx"] * 10
-        bullet["rect"].y += bullet["dy"] * 10
-
-        
-    #видалення снарядів
-    bullets = [
-        b for b in bullets
-        if 0 < b["rect"].x < WIDTH and 0 < b["rect"].y < HEIGHT
-    ]
-
-
-    #кнопка для ривку
-    if keys[pygame.K_e] and dash_cooldown == 0 and dash_time == 0:
-        dash_time = dash_duration
-        dash_cooldown = dash_cooldown_max
     
-    #Самі вороги
-    spawn_timer += 1
-    #спавн ворогів
-    if spawn_timer >= spawn_delay:
-        spawn_timer = 0
+    else: #Гра
 
-        enemy = pygame.Rect(0, 0, enemy_size, enemy_size)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_e:
+                    #ривок
+                    player.start_dash(keys)
 
-        side = random.choice(["top", "bottom", "left", "right"])
+        ###TIMERS
+        direction_x = player.dir_x
+        direction_y = player.dir_y
 
-        if side == "top":
-            enemy.x = random.randint(0, WIDTH)
-            enemy.y = 0
-        elif side == "bottom":
-            enemy.x = random.randint(0, WIDTH)
-            enemy.y = HEIGHT
-        elif side == "left":
-            enemy.x = 0
-            enemy.y = random.randint(0, HEIGHT)
-        elif side == "right":
-            enemy.x = WIDTH
-            enemy.y = random.randint(0, HEIGHT)
+        if shoot_cooldown > 0: shoot_cooldown -= 1
+        spawn_timer += 1
 
-        enemies.append(enemy)
+        ###LOGIC
+        player.update(keys)
 
-    #рух ворогів
-    for enemy in enemies:
-        if enemy.x < player.x:
-            enemy.x += enemy_speed
-        if enemy.x > player.x:
-            enemy.x -= enemy_speed
-        if enemy.y < player.y:
-            enemy.y += enemy_speed
-        if enemy.y > player.y:
-            enemy.y -= enemy_speed
+        #спавн снаряду
+        if keys[pygame.K_l] and shoot_cooldown == 0:
 
-    #відмальовка ворогів
-    for enemy in enemies:
-        screen.blit(enemy_img_current, (enemy.x, enemy.y))
+            length = math.hypot(direction_x, direction_y)
 
-    #смерть гравця
-    for enemy in enemies:
-        if player.colliderect(enemy):
-            game_state = "game_over"
-            score = 0
-            enemies.clear()
-            bullets.clear()
+            if length != 0:
+                dx = direction_x / length
+                dy = direction_y / length
+            else:
+                dx, dy = 0, -1
+
+            bullets.append(Bullet(
+                player.rect.centerx,
+                player.rect.centery,
+                dx, dy
+            ))
+
+            shoot_sound.play()
+            shoot_cooldown = SHOOT_DELAY
+            
+        #видалення снарядів
+        bullets = [
+            b for b in bullets
+            if not b.is_offscreen(WIDTH, HEIGHT)
+        ]
+        
+        #спавн ворогів
+        if spawn_timer >= SPAWN_DELAY:
             spawn_timer = 0
-            break
 
-        if game_state == "game_over":
-            continue
-    #краї вікна
-    player.clamp_ip(screen.get_rect())
+            side = random.choice(["top", "bottom", "left", "right"])
+            ex, ey = 0, 0
+            if side == "top":
+                ex = random.randint(0, WIDTH)
+            elif side == "bottom":
+                ex = random.randint(0, WIDTH)
+                ey = HEIGHT
+            elif side == "left":
+                ey = random.randint(0, HEIGHT)
+            elif side == "right":
+                ex = WIDTH
+                ey = random.randint(0, HEIGHT)
 
-    #сам гравець
-    screen.blit(player_img, player)
+            enemies.append(Enemy(ex,ey,enemy_img))
 
-    font = pygame.font.Font(None, 36)
-    score_text = font.render(f"Рахунок: {score}", True, (255, 255, 255))
-    screen.blit(score_text, (10, 10))
-    pygame.display.flip()
-    clock.tick(60)
+        #рух ворогів
+        for enemy in enemies:
+            enemy.update(player.rect)
+
+        #Колiзiї
+        for bullet in bullets[:]:
+            for enemy in enemies[:]:
+                if bullet.collides(enemy):
+                    bullets.remove(bullet)
+                    enemies.remove(enemy)
+                    score += 1
+                    break
+            bullet.update()
+
+        for enemy in enemies:
+            if enemy.collides(player.rect):
+                game_state = "game_over"
+
+        ###RENDERING
+        screen.blit(background, (0, 0))
+
+        for enemy in enemies:
+            enemy.draw(screen)
+
+        for bullet in bullets:
+            bullet.draw(screen)
+        
+        player.draw(screen)
+
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f"Рахунок: {score}", True, (255, 255, 255))
+        screen.blit(score_text, (10, 10))
+        #END FRAME
+        pygame.display.flip()
+        clock.tick(FPS)
 
 pygame.quit()
