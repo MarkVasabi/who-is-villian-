@@ -56,7 +56,6 @@ class MenuScene(Scene):
         screen.blit(self.backgrounds[0], (0,0))
         menu_items = [
             TEXT[self.game.language]["play"],
-            f'{TEXT[self.game.language]["mode"]}: {TEXT[self.game.language][self.game_mode]}',
             f'{TEXT[self.game.language]["language"]}: {self.game.language.upper()}',
             TEXT[self.game.language]["exit"]
         ]

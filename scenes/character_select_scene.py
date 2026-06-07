@@ -5,6 +5,8 @@ from scene import Scene
 from collections import deque
 import resources
 
+from translations import TEXT
+
 
 class CharacterSelectScene(Scene):
     def __init__(self, manager, game):
@@ -50,8 +52,9 @@ class CharacterSelectScene(Scene):
     def draw(self, screen):
         screen_size  = screen.get_size()
         self.options_x = [i* screen_size[0] / 3 for i in range(3)]
-
+        f'{TEXT[self.game.language]["mode"]}: {TEXT[self.game.language][self.game_mode]}'
         screen.blit(self.backgrounds[0], (0,0))
+        
         screen.blit(self.text1, (200, 180))
         color = (self.pulse, self.pulse, self.pulse)
         cosmoman_x = self.options_x[1] - self.cosmoman.get_width()/2
