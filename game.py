@@ -6,3 +6,4 @@ class Game():
         self.language = "ua"
         self.skin = "cosmoman"
         self.enemyskin = "alien"
+        self.mode = "endless"
